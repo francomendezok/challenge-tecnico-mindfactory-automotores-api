@@ -57,6 +57,163 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## API: probar con Docker y `curl`
+
+La base URL por defecto es **`http://localhost:3000`**. Las rutas de negocio van bajo **`/api`**; el **healthcheck** queda en **`/health`** (sin prefijo).
+
+### 1. Levantar la API y Postgres
+
+En la raíz del repo:
+
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+Esperá a que `automotores-db` y `automotores-api` estén **healthy**. La API escucha en el puerto **3000** y Postgres del host en **5433** (mapeado desde el contenedor).
+
+### 2. (Opcional) Cargar datos de ejemplo
+
+Si querés autos y titulares sin usar solo POST:
+
+```bash
+docker compose exec -T db psql -U postgres -d automotores -f - < docs/mock.sql
+```
+
+Detalle de los datos: `docs/mock.sql`.
+
+### 3. Desarrollo local sin Docker (solo Nest)
+
+```bash
+cp .env.example .env
+# Asegurate de DATABASE_PORT=5433 si Postgres corre en Docker y exponés 5433 al host
+npm install
+npm run start:dev
+```
+
+### 4. Endpoints y comandos `curl`
+
+**Health (liveness)**
+
+```bash
+curl -s http://localhost:3000/health
+```
+
+Respuesta esperada: `{"status":"ok"}`.
+
+---
+
+**Listado de automotores**
+
+```bash
+curl -s http://localhost:3000/api/automotores
+```
+
+---
+
+**Un automotor por dominio** (ejemplo: `ABC123` si cargaste el mock)
+
+```bash
+curl -s http://localhost:3000/api/automotores/ABC123
+```
+
+---
+
+**Alta de sujeto** (titular; debe existir antes del POST del automotor con ese CUIT)
+
+```bash
+curl -s -X POST http://localhost:3000/api/sujetos \
+  -H "Content-Type: application/json" \
+  -d '{"cuit":"20123456786","denominacion":"Transportes Pampeanos S.A."}'
+```
+
+Segundo titular (útil para probar reasignación con PUT):
+
+```bash
+curl -s -X POST http://localhost:3000/api/sujetos \
+  -H "Content-Type: application/json" \
+  -d '{"cuit":"27302878485","denominacion":"María Elena Fernández"}'
+```
+
+---
+
+**Buscar sujeto por CUIT**
+
+```bash
+curl -s http://localhost:3000/api/sujetos/by-cuit/20123456786
+```
+
+Con guiones en la URL:
+
+```bash
+curl -s http://localhost:3000/api/sujetos/by-cuit/20-12345678-6
+```
+
+---
+
+**Alta de automotor** (`dominio` formato `AAA999` o `AA999AA`; `fechaFabricacion` = entero `YYYYMM`)
+
+Usá un dominio que no exista aún (ajustá `ZZZ999` si ya fue dado de alta):
+
+```bash
+curl -s -X POST http://localhost:3000/api/automotores \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dominio":"ZZZ999",
+    "cuit":"20123456786",
+    "numeroChasis":"CH-001",
+    "numeroMotor":"MOT-001",
+    "color":"Blanco",
+    "fechaFabricacion":202201
+  }'
+```
+
+---
+
+**Actualizar automotor** (todos los campos del body son opcionales)
+
+Solo color:
+
+```bash
+curl -s -X PUT http://localhost:3000/api/automotores/ZZZ999 \
+  -H "Content-Type: application/json" \
+  -d '{"color":"Gris"}'
+```
+
+Cambiar titular (el nuevo CUIT debe existir como sujeto):
+
+```bash
+curl -s -X PUT http://localhost:3000/api/automotores/ZZZ999 \
+  -H "Content-Type: application/json" \
+  -d '{"cuit":"27302878485"}'
+```
+
+---
+
+**Baja de automotor** (cascada sobre objeto de valor y vínculos)
+
+```bash
+curl -s -o /dev/null -w "HTTP %{http_code}\n" -X DELETE http://localhost:3000/api/automotores/ZZZ999
+```
+
+Esperado: código **204**.
+
+---
+
+**Ver código HTTP en cualquier llamada**
+
+```bash
+curl -s -o /dev/null -w "HTTP %{http_code}\n" http://localhost:3000/api/automotores
+```
+
+### 5. Respuestas y errores habituales
+
+- **200 / 201 / 204**: éxito según método.
+- **404**: dominio o CUIT inexistente.
+- **422**: validación de negocio o de DTO (dominio/CUIT/fecha inválidos, CUIT de titular inexistente al crear automotor, etc.).
+
+Si `GET /api/automotores` devuelve `[]` pero en la base hay datos, reconstruí la imagen de la API y volvé a levantar: `docker compose build api && docker compose up -d api`.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
