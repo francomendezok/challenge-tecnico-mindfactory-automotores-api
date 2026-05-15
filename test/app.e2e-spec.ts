@@ -1,22 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { HealthModule } from '../src/health/health.module';
 
-describe('AppModule (e2e)', () => {
+describe('HealthModule (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [HealthModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api', { exclude: ['health'] });
     await app.init();
   });
 
-  it('should bootstrap the application', () => {
-    expect(app.getHttpServer()).toBeDefined();
+  it('GET /health returns ok', () => {
+    return request(app.getHttpServer()).get('/health').expect(200).expect({ status: 'ok' });
   });
 
   afterEach(async () => {

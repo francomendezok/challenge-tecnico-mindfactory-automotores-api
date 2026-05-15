@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { SujetosService } from './sujetos.service';
+import { CreateSujetoDto } from './dto/create-sujeto.dto';
 
 @Controller('sujetos')
 export class SujetosController {
@@ -11,7 +12,7 @@ export class SujetosController {
   }
 
   @Post()
-  create(@Body() body: unknown) {
+  create(@Body() body: CreateSujetoDto) {
     return this.sujetosService.create(body);
   }
 }

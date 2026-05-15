@@ -10,6 +10,8 @@ import {
   Put,
 } from '@nestjs/common';
 import { AutomotoresService } from './automotores.service';
+import { CreateAutomotorDto } from './dto/create-automotor.dto';
+import { UpdateAutomotorDto } from './dto/update-automotor.dto';
 
 @Controller('automotores')
 export class AutomotoresController {
@@ -26,18 +28,18 @@ export class AutomotoresController {
   }
 
   @Post()
-  create(@Body() body: unknown) {
+  create(@Body() body: CreateAutomotorDto) {
     return this.automotoresService.create(body);
   }
 
   @Put(':dominio')
-  update(@Param('dominio') dominio: string, @Body() body: unknown) {
+  update(@Param('dominio') dominio: string, @Body() body: UpdateAutomotorDto) {
     return this.automotoresService.update(dominio, body);
   }
 
   @Delete(':dominio')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('dominio') dominio: string): void {
-    this.automotoresService.remove(dominio);
+  async remove(@Param('dominio') dominio: string): Promise<void> {
+    await this.automotoresService.remove(dominio);
   }
 }
