@@ -64,10 +64,12 @@ Todo vive bajo **`test/`**:
 
 ```bash
 npm run test        # unitarios solos
-npm run test:e2e    # necesita Postgres levantado (mismo .env que usás con npm: DATABASE_HOST=localhost, DATABASE_PORT=5433 si usás docker compose db)
+npm run test:e2e    # necesita Postgres levantado (mismo .env: DATABASE_HOST=localhost, DATABASE_PORT=5433 si usás docker compose db)
 ```
 
-Los e2e de la API **vacían las tablas** antes de cada test (`TRUNCATE ... CASCADE`). No los corras contra una base donde tengas data que quieras conservar.
+Por defecto los e2e de la API hacen **`TRUNCATE ... CASCADE`** antes de cada caso para que sean determinísticos.
+
+**Sin borrar tus datos:** en `.env` poné **`E2E_SKIP_TRUNCATE=true`** (o `1`). Ahí no se trunca nada. Consecuencia: si ya existen los CUIT que usan los tests (`20123456786`, `27302878485`) o dominios que chocan, **algunos tests pueden fallar**. Para CI o resultado confiable, no uses skip.
 
 **¿Cubrimos todos los edge cases?** No. Cubrimos caminos felices, 404/422 obvios, duplicados, body con campo de más, y un par de cosas de dominio/CUIT/fecha en unitarios. Falta, por ejemplo: concurrencia, timeouts de DB, todos los tipos de CUIT, stress, y e2e con Postgres distinto al default. Si sumás eso, son más tests o herramientas tipo Testcontainers.
 

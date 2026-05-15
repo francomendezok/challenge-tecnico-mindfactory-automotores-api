@@ -25,6 +25,9 @@ describe('API automotores y sujetos (e2e)', () => {
   });
 
   beforeEach(async () => {
+    if (process.env.E2E_SKIP_TRUNCATE === 'true' || process.env.E2E_SKIP_TRUNCATE === '1') {
+      return;
+    }
     await truncateAllPublicTables(dataSource);
   });
 
