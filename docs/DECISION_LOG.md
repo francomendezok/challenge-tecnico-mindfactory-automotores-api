@@ -13,3 +13,4 @@ Registro de decisiones técnicas del proyecto.
 | 2026-05-15 | E2e con `TRUNCATE` entre casos; opt-out con `E2E_SKIP_TRUNCATE` | Determinismo en CI; poder correr e2e sin borrar data local (con riesgo de choques) | Base Postgres dedicada solo para tests |
 | 2026-05-15 | `moduleNameMapper` en Jest para imports `*.js` (NodeNext) | TypeScript emite paths `.js`; Jest resolvía mal sin el mapper | Volver imports sin extensión en entidades |
 | 2026-05-15 | `test/helpers` replica pipes/filtro de `main.ts` | E2e prueba el mismo stack que producción | Levantar proceso real con `child_process` |
+| 2026-05-16 | Alta reutiliza `Objeto_De_Valor` por `ovp_codigo` y cierra dueño activo previo | Regla de negocio 1 literal del challenge | Siempre crear objeto nuevo |
