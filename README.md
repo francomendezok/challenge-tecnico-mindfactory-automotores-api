@@ -2,7 +2,7 @@
 
 Challenge técnico Mindfactory. Stack: **NestJS**, **TypeORM**, **Postgres**. Modelo con sujetos (titulares), objetos de valor, automotores y vínculos; validaciones de dominio argentino, CUIT y fecha de fabricación tipo `YYYYMM`.
 
-El esquema está en `docs/schema.sql`. Si te interesa el porqué de algunas decisiones, `docs/DECISION_LOG.md`.
+El esquema está en `docs/schema.sql`. El porqué de algunas decisiones en: `docs/DECISION_LOG.md`.
 
 ---
 
@@ -17,7 +17,7 @@ docker compose ps
 
 Cuando `automotores-db` y `automotores-api` digan **healthy**, la API queda en **http://localhost:3000**. Postgres del host: **localhost:5433** (el 5432 en mi máquina ya lo tenía ocupado, por eso el mapeo así).
 
-Si el `GET /api/automotores` te da `[]` pero en la base ves filas, casi seguro es imagen vieja de la API. A mí me pasó:
+Si el `GET /api/automotores` da `[]` pero en la base ves filas, casi seguro es imagen vieja de la API. Debemos hacer:
 
 ```bash
 docker compose build api && docker compose up -d api
@@ -46,9 +46,6 @@ cp .env.example .env
 npm install
 npm run start:dev
 ```
-
-Importante: Nest **no lee `.env` solo**; en `main` se carga con `dotenv` antes de levantar los módulos. Si `DATABASE_PORT` no entra, TypeORM cae al default **5432** y vos podés estar mirando otra base que la de Docker en **5433** — por eso parecía vacío todo.
-
 ---
 
 ## Tests
@@ -70,8 +67,6 @@ npm run test:e2e    # necesita Postgres levantado (mismo .env: DATABASE_HOST=loc
 Por defecto los e2e de la API hacen **`TRUNCATE ... CASCADE`** antes de cada caso para que sean determinísticos.
 
 **Sin borrar tus datos:** en `.env` poné **`E2E_SKIP_TRUNCATE=true`** (o `1`). Ahí no se trunca nada. Consecuencia: si ya existen los CUIT que usan los tests (`20123456786`, `27302878485`) o dominios que chocan, **algunos tests pueden fallar**. Para CI o resultado confiable, no uses skip.
-
-**¿Cubrimos todos los edge cases?** No. Cubrimos caminos felices, 404/422 obvios, duplicados, body con campo de más, y un par de cosas de dominio/CUIT/fecha en unitarios. Falta, por ejemplo: concurrencia, timeouts de DB, todos los tipos de CUIT, stress, y e2e con Postgres distinto al default. Si sumás eso, son más tests o herramientas tipo Testcontainers.
 
 
 ## Endpoints / curls
@@ -128,12 +123,18 @@ curl -s -X PUT http://localhost:3000/api/automotores/ZZZ999 \
   -d '{"color":"Gris"}'
 ```
 
-Cambiar titular (el nuevo CUIT tiene que estar dado de alta como sujeto):
+Cambiar titular del automotor (`PUT` en **automotores**, no en sujetos). El CUIT nuevo tiene que existir en `Sujeto` (mock o `POST /api/sujetos`):
 
 ```bash
+# Con sujeto ya cargado en mock.sql (María Elena):
 curl -s -X PUT http://localhost:3000/api/automotores/ZZZ999 \
   -H "Content-Type: application/json" \
   -d '{"cuit":"27302878485"}'
+
+# O con el sujeto que diste de alta abajo (Pepe, CUIT 27345678900):
+curl -s -X PUT http://localhost:3000/api/automotores/ZZZ999 \
+  -H "Content-Type: application/json" \
+  -d '{"cuit":"27345678900"}'
 ```
 
 Borrar (204 sin body si salió bien):
@@ -149,16 +150,26 @@ Alta:
 ```bash
 curl -s -X POST http://localhost:3000/api/sujetos \
   -H "Content-Type: application/json" \
-  -d '{"cuit":"20123456786","denominacion":"Transportes Pampeanos S.A."}'
+  -d '{"cuit":"20429783977","denominacion":"Transportes Pampeanos S.A."}'
 ```
 
-Otro CUIT para jugar con el PUT de reasignación:
+Si corriste `mock.sql`, este CUIT ya existe → **422** (`El CUIT ya está registrado`):
 
 ```bash
 curl -s -X POST http://localhost:3000/api/sujetos \
   -H "Content-Type: application/json" \
   -d '{"cuit":"27302878485","denominacion":"María Elena Fernández"}'
 ```
+
+Otro titular para probar el `PUT` de reasignación (CUIT válido módulo 11, no está en el mock):
+
+```bash
+curl -s -X POST http://localhost:3000/api/sujetos \
+  -H "Content-Type: application/json" \
+  -d '{"cuit":"27345678900","denominacion":"Pepe Juarez"}'
+```
+
+Después podés reasignar un automotor a Pepe con el segundo `PUT` de la sección Automotores (`"cuit":"27345678900"`).
 
 Buscar por CUIT:
 
@@ -167,20 +178,13 @@ curl -s http://localhost:3000/api/sujetos/by-cuit/20123456786
 curl -s http://localhost:3000/api/sujetos/by-cuit/20-12345678-6
 ```
 
-### Códigos que me importan
+### Errores
 
 | Código | Cuándo |
 |--------|--------|
 | 404 | dominio o sujeto que no está |
 | 422 | validación (dominio/CUIT/fecha) o regla de negocio (titular inexistente, dominio duplicado, etc.) |
 
-Para ver el status sin imprimir el body:
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/api/automotores
-```
-
----
 
 ## Build / prod local
 
@@ -192,5 +196,3 @@ npm run start:prod
 Eso corre `node dist/main.js`.
 
 ---
-
-Nest arranca con el CLI default; la doc pesada del starter la saqué porque no aportaba acá. Si necesitás algo del ecosistema Nest, [docs.nestjs.com](https://docs.nestjs.com).
