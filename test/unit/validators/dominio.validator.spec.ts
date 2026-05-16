@@ -1,4 +1,4 @@
-import { isValidDominio, normalizeDominio } from './dominio.validator';
+import { isValidDominio, normalizeDominio } from '../../../src/common/validators/dominio.validator';
 
 describe('dominio.validator', () => {
   it('accepts formato viejo AAA999', () => {
@@ -19,5 +19,17 @@ describe('dominio.validator', () => {
     expect(isValidDominio('ABC12')).toBe(false);
     expect(isValidDominio('1234ABC')).toBe(false);
     expect(isValidDominio('')).toBe(false);
+  });
+
+  it('rejects Mercosur with letters in digit slots', () => {
+    expect(isValidDominio('AB12C3D')).toBe(false);
+  });
+
+  it('rejects old format with only two letters prefix', () => {
+    expect(isValidDominio('AB1234')).toBe(false);
+  });
+
+  it('accepts boundary old plate with digits 000', () => {
+    expect(isValidDominio('AAA000')).toBe(true);
   });
 });
