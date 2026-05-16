@@ -9,3 +9,4 @@ Registro de decisiones técnicas del proyecto.
 | 2026-05-15 | Dominio normalizado a mayúsculas antes del regex | Patentes argentinas no distinguen mayúsculas en la práctica | Rechazar minúsculas sin normalizar |
 | 2026-05-15 | Fecha fabricación como entero `YYYYMM` inyectando fecha de referencia en tests | Evita tests flaky por mes/año actual | Mockear `Date` global |
 | 2026-05-15 | Ramas por feature + Conventional Commits | Criterio de evaluación Git (10 pts) | Todo en `main` directo |
+| 2026-05-16 | Alta reutiliza `Objeto_De_Valor` por `ovp_codigo` y cierra dueño activo previo | Regla de negocio 1 literal del challenge | Siempre crear objeto nuevo |

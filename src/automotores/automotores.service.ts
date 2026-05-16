@@ -85,12 +85,17 @@ export class AutomotoresService {
       const autoRepo = em.getRepository(Automotor);
       const vRepo = em.getRepository(VinculoSujetoObjeto);
 
-      const ov = ovpRepo.create({
-        ovpTipo: 'AUTOMOTOR',
-        ovpCodigo: dominio,
-        ovpDescripcion: null,
-      });
-      await ovpRepo.save(ov);
+      let ov = await ovpRepo.findOne({ where: { ovpCodigo: dominio } });
+      if (!ov) {
+        ov = ovpRepo.create({
+          ovpTipo: 'AUTOMOTOR',
+          ovpCodigo: dominio,
+          ovpDescripcion: null,
+        });
+        await ovpRepo.save(ov);
+      } else {
+        await this.closeActiveOwnerInTx(em, ov.ovpId);
+      }
 
       const auto = autoRepo.create({
         objetoValor: ov,
